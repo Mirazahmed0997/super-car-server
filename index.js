@@ -24,6 +24,7 @@ async function run() {
   try {
 
             const serviceCollection=client.db('superCar').collection('services')
+            const orderCollections=client.db('superCar').collection('orders')
             app.get('/services',async(req,res)=>
             {
                 const query={}
@@ -38,6 +39,37 @@ async function run() {
                 const service=await serviceCollection.findOne(query)
                 res.send(service)
             })
+
+            // orders api
+            app.get('/orders', async (req,res)=>
+            {
+                let query={}
+                if(req.query.email)
+                {
+                  query={
+                    email:req.query.email
+                  }
+                }
+                const cursor=orderCollections.find(query)
+                const orders=await cursor.toArray();
+                res.send(orders)
+            })
+
+            app.post('/orders', async(req,res)=>
+            {
+              const order=req.body
+              const result=await orderCollections.insertOne(order);
+              res.send(result)
+            })
+
+            app.delete('/orders/:id', async(req,res)=>
+            {
+              const id=req.params.id;
+              const query={_id: new ObjectId(id)}
+              const result= await orderCollections.deleteOne(query)
+              res.send(result);
+            })
+
 
   } 
   
