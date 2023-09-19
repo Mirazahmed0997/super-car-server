@@ -1,5 +1,6 @@
 const express= require('express')
 const cors=require('cors')
+const jwt=require('jsonwebtoken')
 const app=express();
 const port=process.env.PORT || 5000
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -17,14 +18,42 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  } 
 });
+function verifyJWT(req,res,next)
+{
+  const authHeaders= req.headers.authorization;
+  if(!authHeaders)
+  {
+    res.status(401).send({message: 'unauthirized access'})
+  }
+  const token = authHeaders.split(' ')[1]
+  jwt.verify(token,process.env.ACCESS_TOKEN_SECRET,function(err,decoded){
+    if(err)
+    {
+      res.status(401).send({message: 'unauthirized access'})
+    }
+    req.decoded=decoded;
+    next();
+  })
+}
+
 
 async function run() {
   try {
 
             const serviceCollection=client.db('superCar').collection('services')
             const orderCollections=client.db('superCar').collection('orders')
+
+            app.post('/jwt',async(req,res)=>
+            {
+              const user=req.body;
+              console.log(user)
+              const token=jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn:'1h'})
+              res.send({token})
+
+            })
+
             app.get('/services',async(req,res)=>
             {
                 const query={}
@@ -41,7 +70,7 @@ async function run() {
             })
 
             // orders api
-            app.get('/orders', async (req,res)=>
+            app.get('/orders',verifyJWT, async (req,res)=>
             {
                 let query={}
                 if(req.query.email)
@@ -60,6 +89,22 @@ async function run() {
               const order=req.body
               const result=await orderCollections.insertOne(order);
               res.send(result)
+            })
+
+            app.patch('/orders/:id',async(req,res)=>
+            {
+              const id =req.params.id
+              const status=req.body.status
+              const query={_id: new ObjectId(id)}
+              const updateDoc={
+                $set:
+                {
+                  status:status
+                }
+              }
+              const result = await orderCollections.updateOne(query,updateDoc)
+              res.send(result)
+                
             })
 
             app.delete('/orders/:id', async(req,res)=>
