@@ -45,6 +45,7 @@ async function run() {
             const serviceCollection=client.db('superCar').collection('services')
             const orderCollections=client.db('superCar').collection('orders')
 
+
             app.post('/jwt',(req,res)=>
             {
               const user=req.body;
@@ -52,13 +53,31 @@ async function run() {
               res.send({token})
             })
 
+            
+
             app.get('/services',async(req,res)=>
             {
-                const query={}
-                const cursor= serviceCollection.find(query)
+                const search = req.query.search
+                console.log(search)
+                let query={};
+                if (search.length) 
+                {
+                  query={
+                    $text:{
+                      $search:search
+                    }
+                  }
+                }
+              
+                const order=req.query.order==='asc'? 1:-1;
+
+                const cursor= serviceCollection.find(query).sort({price:order})
                 const services= await cursor.toArray();
                 res.send(services)
             })
+
+
+
             app.get('/services/:id',async(req,res)=>
             {
                 const id=req.params.id;
@@ -67,11 +86,13 @@ async function run() {
                 res.send(service)
             })
 
+
+
+
             // orders api
             app.get('/orders',verifyJWT,async (req,res)=>
             {
                 const decoded=req.decoded
-                console.log(decoded)
                 if(decoded.email!==req.query.email)
                 {
                   res.status(403).send({message:'unauhtorised access'})
@@ -120,7 +141,7 @@ async function run() {
               res.send(result);
             })
 
-
+            
   } 
   
   finally {
