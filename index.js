@@ -15,7 +15,7 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@clu
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
-    strict: true,
+    strict: false,
     deprecationErrors: true,
   } 
 });
@@ -44,8 +44,9 @@ async function run() {
 
             const serviceCollection=client.db('superCar').collection('services')
             const orderCollections=client.db('superCar').collection('orders')
-
-
+            
+            
+            
             app.post('/jwt',(req,res)=>
             {
               const user=req.body;
